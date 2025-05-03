@@ -1,4 +1,4 @@
-## *depthai_rospi* package
+## OAK-D Lite on a Raspberry Pi 5 - *depthai_rospi* package
 
 This is a ROS2 (Jazzy) package designed to work with _OAK-D Lite_ camera on a Raspberry Pi 5.
 Based on [depthai_examples](https://github.com/luxonis/depthai-ros/tree/humble/depthai_examples) package.
