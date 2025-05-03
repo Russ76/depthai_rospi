@@ -16,7 +16,7 @@
 #include "depthai/pipeline/node/MonoCamera.hpp"
 #include "depthai/pipeline/node/StereoDepth.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
-#include "depthai_bridge/BridgePublisher.hpp"
+#include "BridgePublisherPi.hpp"
 #include "depthai_bridge/DisparityConverter.hpp"
 #include "depthai_bridge/ImageConverter.hpp"
 
@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
 
     dai::rosBridge::ImageConverter converter(tfPrefix + "_left_camera_optical_frame", true);
     auto leftCameraInfo = converter.calibrationToCameraInfo(calibrationHandler, dai::CameraBoardSocket::CAM_B, monoWidth, monoHeight);
-    dai::rosBridge::BridgePublisher<sensor_msgs::msg::Image, dai::ImgFrame> leftPublish(
+    dai::rosBridge::BridgePublisherPi<sensor_msgs::msg::Image, dai::ImgFrame> leftPublish(
         leftQueue,
         node,
         std::string("left/image_rect"),
@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
     dai::rosBridge::ImageConverter rightconverter(tfPrefix + "_right_camera_optical_frame", true);
     auto rightCameraInfo = converter.calibrationToCameraInfo(calibrationHandler, dai::CameraBoardSocket::CAM_C, monoWidth, monoHeight);
 
-    dai::rosBridge::BridgePublisher<sensor_msgs::msg::Image, dai::ImgFrame> rightPublish(
+    dai::rosBridge::BridgePublisherPi<sensor_msgs::msg::Image, dai::ImgFrame> rightPublish(
         rightQueue,
         node,
         std::string("right/image_rect"),
@@ -174,7 +174,7 @@ int main(int argc, char** argv) {
     rightPublish.addPublisherCallback();
 
     if(mode == "depth") {
-        dai::rosBridge::BridgePublisher<sensor_msgs::msg::Image, dai::ImgFrame> depthPublish(
+        dai::rosBridge::BridgePublisherPi<sensor_msgs::msg::Image, dai::ImgFrame> depthPublish(
             stereoQueue,
             node,
             std::string("stereo/depth"),
@@ -190,7 +190,7 @@ int main(int argc, char** argv) {
         rclcpp::spin(node);
     } else {
         dai::rosBridge::DisparityConverter dispConverter(tfPrefix + "_right_camera_optical_frame", 880, 7.5, 20, 2000);
-        dai::rosBridge::BridgePublisher<stereo_msgs::msg::DisparityImage, dai::ImgFrame> dispPublish(
+        dai::rosBridge::BridgePublisherPi<stereo_msgs::msg::DisparityImage, dai::ImgFrame> dispPublish(
             stereoQueue,
             node,
             std::string("stereo/disparity"),
