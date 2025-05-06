@@ -13,6 +13,8 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "std_msgs/msg/header.hpp"
 
+//#define TRACE
+
 namespace dai {
 
 namespace ros {
@@ -88,7 +90,10 @@ class BridgePublisherPi {
     std::shared_ptr<dai::DataOutputQueue> _daiMessageQueue;
     ConvertFunc _converter;
     int multiplier_ = 10;
-    int cnt_ = 0;
+    int cnt_mult_ = 0;
+    int cnt_ignored_ = 0;
+    int cnt_nulls_ = 0;
+    int cnt_trace_ = 0;
 
     std::shared_ptr<rclcpp::Node> _node;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr _cameraInfoPublisher;
@@ -198,22 +203,24 @@ void BridgePublisherPi<RosMsg, SimMsg>::startPublisherThread() {
     }
 
     _readingThread = std::thread([&]() {
-        int messageCounter = 0;
         while(rosOrigin::ok()) {
-            // auto daiDataPtr = _daiMessageQueue->get<SimMsg>();
-            auto daiDataPtr = _daiMessageQueue->tryGet<SimMsg>();
-            if(daiDataPtr == nullptr) {
-                messageCounter++;
-                if(messageCounter > 2000000) {
-                    messageCounter = 0;
+            try {
+                auto daiDataPtr = _daiMessageQueue->get<SimMsg>();
+                //auto daiDataPtr = _daiMessageQueue->tryGet<SimMsg>();
+                if(daiDataPtr) {
+                    publishHelper(daiDataPtr);
                 }
-                continue;
+            } catch (const std::runtime_error& error) {
+                #ifdef TRACE
+                std::cerr << "Caught exception: " << error.what() << std::endl;
+                #endif // TRACE
+                break;
+            } catch (...) {
+                #ifdef TRACE
+                std::cerr << "Caught an exception" << std::endl;
+                #endif // TRACE
+                break;
             }
-
-            if(messageCounter != 0) {
-                messageCounter = 0;
-            }
-            publishHelper(daiDataPtr);
         }
     });
 }
@@ -228,12 +235,26 @@ template <class RosMsg, class SimMsg>
 void BridgePublisherPi<RosMsg, SimMsg>::publishHelper(std::shared_ptr<SimMsg> inDataPtr) {
     std::deque<RosMsg> opMsgs;
 
-    if(cnt_++ < multiplier_) {
+    if(!inDataPtr) {
+        cnt_nulls_++;
+        //usleep(10);
         return;
     }
-    cnt_ = 0;
 
-    int infoSubCount = 0, mainSubCount = 0;
+    if(++cnt_mult_ < multiplier_) {
+        cnt_ignored_++;
+        return;
+    }
+    cnt_mult_ = 0;
+
+#ifdef TRACE
+    if(++cnt_trace_ >= 10) {
+        std::cout << "msgs ignored: " << cnt_ignored_ << "   nulls: " << cnt_nulls_ << std::endl;
+        cnt_trace_ = 0;
+    }
+#endif // TRACE
+
+int infoSubCount = 0, mainSubCount = 0;
 
     if(_isImageMessage) {
         infoSubCount = _node->count_subscribers(_cameraName + "/camera_info");
