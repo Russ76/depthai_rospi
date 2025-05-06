@@ -3,6 +3,7 @@
 #include <iostream>
 #include <tuple>
 #include <sys/syscall.h> // for SYS_gettid
+#include <unistd.h>
 
 #include "camera_info_manager/camera_info_manager.hpp"
 #include "rclcpp/executors.hpp"
