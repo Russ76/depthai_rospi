@@ -77,7 +77,7 @@ class BridgePublisherPi {
 
     ~BridgePublisherPi();
 
-    inline void setMultiplier(int multiplier) { multiplier_ = multiplier; }
+    inline void setFpsDivider(int fpsDivider) { fpsDivider_ = fpsDivider; }
 
    private:
     /**
@@ -89,7 +89,7 @@ class BridgePublisherPi {
     static const std::string LOG_TAG;
     std::shared_ptr<dai::DataOutputQueue> _daiMessageQueue;
     ConvertFunc _converter;
-    int multiplier_ = 10;
+    int fpsDivider_ = 10;
     int cnt_mult_ = 0;
     int cnt_ignored_ = 0;
     int cnt_nulls_ = 0;
@@ -241,7 +241,7 @@ void BridgePublisherPi<RosMsg, SimMsg>::publishHelper(std::shared_ptr<SimMsg> in
         return;
     }
 
-    if(++cnt_mult_ < multiplier_) {
+    if(++cnt_mult_ < fpsDivider_) {
         cnt_ignored_++;
         return;
     }

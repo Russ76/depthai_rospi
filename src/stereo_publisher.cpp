@@ -112,7 +112,7 @@ static std::string tfPrefix, monoResolution_;
 static bool lrcheck_, extended_, subpixel_;
 static int confidence_, LRchecktresh_;
 static int monoWidth, monoHeight;
-static int multiplier_ = 1;
+static int fpsDivider_ = 1;
 
 static int cnt_crashes = 0;
 
@@ -156,7 +156,7 @@ void initPublishers()
 
     //leftPublish.addPublisherCallback();
     leftPublish_ = &leftPublish;
-    leftPublish.setMultiplier(multiplier_);   
+    leftPublish.setFpsDivider(fpsDivider_);   
     leftPublish.startPublisherThread();
 
     dai::rosBridge::ImageConverter rightconverter(tfPrefix + "_right_camera_optical_frame", true);
@@ -172,7 +172,7 @@ void initPublishers()
 
     //rightPublish.addPublisherCallback();
     rightPublish_ = &rightPublish;
-    rightPublish.setMultiplier(multiplier_);   
+    rightPublish.setFpsDivider(fpsDivider_);   
     rightPublish.startPublisherThread();
 
     dai::rosBridge::ImageConverter rightconverter_(tfPrefix + "_right_camera_optical_frame", true);
@@ -191,7 +191,7 @@ void initPublishers()
         "stereo");
     //depthPublish.addPublisherCallback();
     depthPublish_ = &depthPublish;
-    depthPublish.setMultiplier(multiplier_);   
+    depthPublish.setFpsDivider(fpsDivider_);   
     depthPublish.startPublisherThread();
 }
 
@@ -226,6 +226,7 @@ int main(int argc, char** argv)
     node->declare_parameter("confidence", 200);
     node->declare_parameter("LRchecktresh", 5);
     node->declare_parameter("monoResolution", "720p");
+    node->declare_parameter("fpsDivider", 10);
 
     node->get_parameter("tf_prefix", tfPrefix);
     node->get_parameter("lrcheck", lrcheck_);
@@ -234,6 +235,7 @@ int main(int argc, char** argv)
     node->get_parameter("confidence", confidence_);
     node->get_parameter("LRchecktresh", LRchecktresh_);
     node->get_parameter("monoResolution", monoResolution_);
+    node->get_parameter("fpsDivider", fpsDivider_);
 
     std::cout << "IP: starting worker thread..." << std::endl;
 

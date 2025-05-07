@@ -33,7 +33,8 @@ def generate_launch_description():
     subpixel       = LaunchConfiguration('subpixel', default = True)
     confidence     = LaunchConfiguration('confidence', default = 200)
     LRchecktresh   = LaunchConfiguration('LRchecktresh', default = 5)
-    monoResolution = LaunchConfiguration('monoResolution',  default = '480p')
+    monoResolution = LaunchConfiguration('monoResolution', default = '480p')
+    fpsDivider     = LaunchConfiguration('fpsDivider', default = 10)
 
     declare_camera_model_cmd = DeclareLaunchArgument(
         'camera_model',
@@ -93,32 +94,37 @@ def generate_launch_description():
     declare_lrcheck_cmd = DeclareLaunchArgument(
         'lrcheck',
         default_value=lrcheck,
-        description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.')
+        description='LR-Check is used to remove incorrectly calculated disparity pixels due to occlusions at object borders. Set to true to enable it.')
 
     declare_extended_cmd = DeclareLaunchArgument(
         'extended',
         default_value=extended,
-        description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.')
+        description='Extended disparity mode allows detecting closer distance objects for the given baseline. Set this parameter to true to enable it.')
 
     declare_subpixel_cmd = DeclareLaunchArgument(
         'subpixel',
         default_value=subpixel,
-        description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.')
+        description='Subpixel mode improves the precision and is especially useful for long range measurements. It also helps for better estimating surface normals. Set this parameter to true to enable it.')
     
     declare_confidence_cmd = DeclareLaunchArgument(
         'confidence',
         default_value=confidence,
-        description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.')
+        description='Set the confidence of the depth from 0-255. Max value means allow depth of all confidence. Default is set to 200.')
     
     declare_LRchecktresh_cmd = DeclareLaunchArgument(
         'LRchecktresh',
         default_value=LRchecktresh,
-        description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.')
+        description='Set the LR threshold from 1-10 to get more accurate depth. Default value is 5.')
     
     declare_monoResolution_cmd = DeclareLaunchArgument(
         'monoResolution',
         default_value=monoResolution,
         description='Contains the resolution of the Mono Cameras. Available resolutions are 800p, 720p & 400p for OAK-D & 480p for OAK-D-Lite.')
+
+    declare_fpsDivider_cmd = DeclareLaunchArgument(
+        'fpsDivider',
+        default_value=fpsDivider,
+        description='OAK-D-Lite does not react to i_fps, this is alternative way of lowering FPS')
 
     urdf_launch = IncludeLaunchDescription(
                             launch_description_sources.PythonLaunchDescriptionSource(
@@ -144,7 +150,8 @@ def generate_launch_description():
                         {'subpixel': subpixel},
                         {'confidence': confidence},
                         {'LRchecktresh': LRchecktresh},
-                        {'monoResolution': monoResolution}])
+                        {'monoResolution': monoResolution},
+                        {'fpsDivider': fpsDivider}])
 
 
     metric_converter_node = launch_ros.actions.ComposableNodeContainer(
@@ -210,6 +217,7 @@ def generate_launch_description():
     ld.add_action(declare_confidence_cmd)
     ld.add_action(declare_LRchecktresh_cmd)
     ld.add_action(declare_monoResolution_cmd)
+    ld.add_action(declare_fpsDivider_cmd)
 
     ld.add_action(stereo_node)
     ld.add_action(urdf_launch)
