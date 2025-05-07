@@ -41,6 +41,10 @@ ros2 launch depthai_rospi stereo_pi.launch.py
 ```
 To see your data in RViz2 on the Desktop machine, follow this [guide](https://github.com/slgrobotics/robots_bringup/blob/main/Docs/Sensors/OAK-D_Lite.md#on-the-desktop-machine)
 
+By default, the `fpsDivider` parameter is set to 10, which amounts to about 3 FPS on publishing all data (left and right Mono images and Depth).
+All data is published raw (uncompressed).
+The load on the WiFi link is around 120 Mbits/s for PointCloud2 data and about 8 Mbits/s for Image data (run nload wlan0 on RPi).
+
 ## Useful Links
 
 https://github.com/slgrobotics/robots_bringup/blob/main/Docs/Sensors/OAK-D_Lite.md
