@@ -230,7 +230,12 @@ void monitoringTask()
         try {
             workerThread = std::thread(workerTask);
 
-            sleep(3);
+            while(depthPublish_ == nullptr) {
+                std::cout << "IP: waiting for depthPublish to be initialized..." << std::endl;
+                sleep(1);
+            }
+
+            std::cout << "OK: depthPublish initialized" << std::endl;
 
             while (rclcpp::ok()) {
 
@@ -258,6 +263,7 @@ void monitoringTask()
         if (workerThread.joinable()) {
             workerThread.join();
         }
+        depthPublish_ = nullptr;
     }
 }
 
