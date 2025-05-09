@@ -75,6 +75,8 @@ class BridgePublisherPi {
 
     void startPublisherThread();
 
+    void stopPublisherThread();
+
     ~BridgePublisherPi();
 
     inline void setFpsDivider(int fpsDivider) { fpsDivider_ = fpsDivider; }
@@ -97,6 +99,7 @@ class BridgePublisherPi {
     unsigned int cnt_published_ = 0;
     unsigned int cnt_nulls_ = 0;
     unsigned int cnt_trace_ = 0;
+    bool is_shuting_down_ = false;
 
     std::shared_ptr<rclcpp::Node> _node;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr _cameraInfoPublisher;
@@ -229,6 +232,31 @@ void BridgePublisherPi<RosMsg, SimMsg>::startPublisherThread() {
 }
 
 template <class RosMsg, class SimMsg>
+void BridgePublisherPi<RosMsg, SimMsg>::stopPublisherThread() {
+
+    is_shuting_down_ = true;
+
+    // Check if the thread is joinable
+    if (_readingThread.joinable()) {
+        try {
+            // Signal the thread to stop by clearing the ROS context
+            rosOrigin::shutdown();
+
+            // Join the thread to ensure it exits cleanly
+            _readingThread.join();
+        } catch (const std::exception& e) {
+            #ifdef TRACE
+            std::cerr << "Exception in stopPublisherThread: " << e.what() << std::endl;
+            #endif // TRACE
+        } catch (...) {
+            #ifdef TRACE
+            std::cerr << "Unknown exception in stopPublisherThread" << std::endl;
+            #endif // TRACE
+        }
+    }
+}
+
+template <class RosMsg, class SimMsg>
 void BridgePublisherPi<RosMsg, SimMsg>::addPublisherCallback() {
     _daiMessageQueue->addCallback(std::bind(&BridgePublisherPi<RosMsg, SimMsg>::daiCallback, this, std::placeholders::_1, std::placeholders::_2));
     _isCallbackAdded = true;
@@ -237,6 +265,10 @@ void BridgePublisherPi<RosMsg, SimMsg>::addPublisherCallback() {
 template <class RosMsg, class SimMsg>
 void BridgePublisherPi<RosMsg, SimMsg>::publishHelper(std::shared_ptr<SimMsg> inDataPtr) {
     std::deque<RosMsg> opMsgs;
+
+    if(is_shuting_down_) {
+        return;
+    }
 
     if(!inDataPtr) {
         cnt_nulls_++;

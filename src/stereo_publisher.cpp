@@ -22,14 +22,17 @@
 #include "depthai_bridge/DisparityConverter.hpp"
 #include "depthai_bridge/ImageConverter.hpp"
 
+//#define TRACE
+
 std::tuple<dai::Pipeline, int, int> createPipeline(
-                bool withDepth, bool lrcheck, bool extended, bool subpixel,
+                bool lrcheck, bool extended, bool subpixel,
                 int confidence, int LRchecktresh, std::string resolution)
 {
+#ifdef TRACE
     std::cout << "IP: createPipeline()" << std::endl;
-
-    std::cout << "FYI: withDepth: " << withDepth << "  lrcheck: " << lrcheck << "  extended: " << extended << "  subpixel: " << subpixel << std::endl;
+    std::cout << "FYI: lrcheck: " << lrcheck << "  extended: " << extended << "  subpixel: " << subpixel << std::endl;
     std::cout << "FYI: confidence: " << confidence << "  LRchecktresh: " << LRchecktresh << "  resolution: " << resolution << std::endl;
+#endif // TRACE
 
     dai::Pipeline pipeline;
     dai::node::MonoCamera::Properties::SensorResolution monoResolution;
@@ -44,11 +47,7 @@ std::tuple<dai::Pipeline, int, int> createPipeline(
     xoutLeft->setStreamName("left");
     xoutRight->setStreamName("right");
 
-    if(withDepth) {
-        xoutDepth->setStreamName("depth");
-    } else {
-        xoutDepth->setStreamName("disparity");
-    }
+    xoutDepth->setStreamName("depth");
 
     int width, height;
     if(resolution == "720p") {
@@ -93,11 +92,7 @@ std::tuple<dai::Pipeline, int, int> createPipeline(
     stereo->rectifiedLeft.link(xoutLeft->input);
     stereo->rectifiedRight.link(xoutRight->input);
 
-    if(withDepth) {
-        stereo->depth.link(xoutDepth->input);
-    } else {
-        stereo->disparity.link(xoutDepth->input);
-    }
+    stereo->depth.link(xoutDepth->input);
 
     return std::make_tuple(pipeline, width, height);
 }
@@ -114,20 +109,18 @@ static int confidence_, LRchecktresh_;
 static int monoWidth, monoHeight;
 static int fpsDivider_ = 1;
 
-static int cnt_crashes = 0;
+static int cnt_freezes_ = 0;
 
 void runPublishers()
 {
     dai::Pipeline pipeline;
 
+#ifdef TRACE
     std::cout << "IP: runPublishers()" << std::endl;
-
     std::cout << "FYI: tfPrefix: " << tfPrefix << "  monoResolution_: " << monoResolution_ << std::endl;
+#endif // TRACE
 
-    std::cout << "FYI: main() depth enabled" << std::endl;
-    bool enableDepth = true;
-
-    std::tie(pipeline, monoWidth, monoHeight) = createPipeline(enableDepth, lrcheck_, extended_, subpixel_, confidence_, LRchecktresh_, monoResolution_);
+    std::tie(pipeline, monoWidth, monoHeight) = createPipeline(lrcheck_, extended_, subpixel_, confidence_, LRchecktresh_, monoResolution_);
     dai::Device device(pipeline);
     auto leftQueue = device.getOutputQueue("left", 30, false);
     auto rightQueue = device.getOutputQueue("right", 30, false);
@@ -137,7 +130,9 @@ void runPublishers()
     auto calibrationHandler = device.readCalibration();
 
     auto boardName = calibrationHandler.getEepromData().boardName;
+#ifdef TRACE
     std::cout << "FYI: boardName: " << boardName << std::endl;
+#endif // TRACE
     if(monoHeight > 480 && boardName == "OAK-D-LITE") {
         monoWidth = 640;
         monoHeight = 480;
@@ -197,45 +192,52 @@ void runPublishers()
 
 void workerTask()
 {
-    pid_t id = syscall(SYS_gettid);
-    std::cout << "IP: workerTask() - in thread ID: " << id << std::endl;
-    std::cout << "IP: Initializing new publishers..." << std::endl;
+    if(rclcpp::ok()) {
+        pid_t id = syscall(SYS_gettid);
+#ifdef TRACE
+        std::cout << "IP: workerTask() - in thread ID: " << id << std::endl;
+        std::cout << "IP: Initializing new publishers..." << std::endl;
+#endif // TRACE
 
-    try {
-        runPublishers(); // will block until it crashes
-    } catch(...)
-    {
-        std::cerr << "workerTask: Caught an exception in runPublishers()" << std::endl;
+        try {
+            runPublishers(); // will block until it crashes
+            std::cout << "FYI: Publishers exited" << std::endl;
+        } catch(...)
+        {
+            std::cerr << "workerTask: Caught an exception in runPublishers()" << std::endl;
+        }
     }
-
-    cnt_crashes++;
-    std::cout << "Error: Publishers crashed, recovering..." << std::endl;
-    std::cout << "FYI:  cnt_crashes: " << cnt_crashes << std::endl;
 }
 
 void monitoringTask()
 {
     pid_t id = syscall(SYS_gettid);
+#ifdef TRACE
     std::cout << "IP: monitoringTask() - in thread ID: " << id << std::endl;
+#endif // TRACE
 
     while(rclcpp::ok()) {
 
         unsigned int last_received = 0;
 
+#ifdef TRACE
         std::cout << "IP: Outer loop of monitoring thread " << id << std::endl;
         std::cout << "IP: starting worker thread..." << std::endl;
+#endif // TRACE
 
         std::thread workerThread;
 
         try {
             workerThread = std::thread(workerTask);
 
-            while(depthPublish_ == nullptr) {
-                std::cout << "IP: waiting for depthPublish to be initialized..." << std::endl;
+            while(leftPublish_ == nullptr || rightPublish_ == nullptr || depthPublish_ == nullptr) {
+#ifdef TRACE
+                std::cout << "IP: waiting for Publishers to be initialized..." << std::endl;
+#endif // TRACE
                 sleep(1);
             }
 
-            std::cout << "OK: depthPublish initialized" << std::endl;
+            std::cout << "OK: Publishers initialized" << std::endl;
 
             while (rclcpp::ok()) {
 
@@ -243,14 +245,17 @@ void monitoringTask()
 
                 unsigned int received = depthPublish_->getReceivedCount();
 
+#ifdef TRACE
                 // \x1b[1;A  // (CSI 1 A) move cursor up a line.
                 // \r     // (CR) move cursor to beginning of line.
                 // \x1b[0;K  // (CSI 0 K) clear line from cursor to EOL.
 
                 std::cout << "\x1b[1;A\rIP: Inner loop of monitoring thread, received: " << received << std::endl;
+#endif // TRACE
 
                 if (received == last_received) {
-                    std::cout << "Error: frozen pipeline " << std::endl;
+                    cnt_freezes_++;
+                    std::cerr << "Error: frozen OAK device pipeline,  cnt_freezes: " << cnt_freezes_ << std::endl;
                     break;
                 }
 
@@ -263,14 +268,16 @@ void monitoringTask()
         if (workerThread.joinable()) {
             workerThread.join();
         }
-        depthPublish_ = nullptr;
+        leftPublish_ = rightPublish_ = depthPublish_ = nullptr;
     }
 }
 
 int main(int argc, char** argv)
 {
 
+#ifdef TRACE
     std::cout << "IP: main()" << std::endl;
+#endif // TRACE
 
     rclcpp::init(argc, argv);
     node = rclcpp::Node::make_shared("stereo_node");
@@ -293,18 +300,46 @@ int main(int argc, char** argv)
     node->get_parameter("monoResolution", monoResolution_);
     node->get_parameter("fpsDivider", fpsDivider_);
 
-    std::cout << "IP: starting monitoring thread..." << std::endl;
+    std::thread monitoringThread;
 
-    std::thread monitoringThread = std::thread(monitoringTask);
+    try {
+#ifdef TRACE
+        std::cout << "IP: starting monitoring thread..." << std::endl;
+#endif // TRACE
 
-    std::cout << "IP: spinning node..." << std::endl;
+        monitoringThread = std::thread(monitoringTask);
 
-    rclcpp::spin(node);
+#ifdef TRACE
+        std::cout << "IP: spinning node..." << std::endl;
+#endif // TRACE
 
-    std::cout << "OK: main() finished" << std::endl;
+        rclcpp::spin(node);
 
-    if (monitoringThread.joinable())
+    } catch (...) {
+        std::cerr << "monitoringTask: Caught an exception while starting or running the worker thread" << std::endl;
+    }
+
+#ifdef TRACE
+    std::cout << "IP: main(): shutting down all threads " << std::endl;
+#endif // TRACE
+
+    if (monitoringThread.joinable()) {
         monitoringThread.join();
+    }
+    if (leftPublish_ != nullptr) {
+        leftPublish_->stopPublisherThread();
+    }
+    if (rightPublish_ != nullptr) {
+        rightPublish_->stopPublisherThread();
+    }
+    if (depthPublish_ != nullptr) {
+        depthPublish_->stopPublisherThread();
+    }
+    rclcpp::shutdown();
+
+#ifdef TRACE
+    std::cout << "OK: main() finished" << std::endl;
+#endif // TRACE
 
     return 0;
 }
