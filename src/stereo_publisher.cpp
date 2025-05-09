@@ -116,11 +116,11 @@ static int fpsDivider_ = 1;
 
 static int cnt_crashes = 0;
 
-void initPublishers()
+void runPublishers()
 {
     dai::Pipeline pipeline;
 
-    std::cout << "IP: initPublishers()" << std::endl;
+    std::cout << "IP: runPublishers()" << std::endl;
 
     std::cout << "FYI: tfPrefix: " << tfPrefix << "  monoResolution_: " << monoResolution_ << std::endl;
 
@@ -199,15 +199,65 @@ void workerTask()
 {
     pid_t id = syscall(SYS_gettid);
     std::cout << "IP: workerTask() - in thread ID: " << id << std::endl;
+    std::cout << "IP: Initializing new publishers..." << std::endl;
+
+    try {
+        runPublishers(); // will block until it crashes
+    } catch(...)
+    {
+        std::cerr << "workerTask: Caught an exception in runPublishers()" << std::endl;
+    }
+
+    cnt_crashes++;
+    std::cout << "Error: Publishers crashed, recovering..." << std::endl;
+    std::cout << "FYI:  cnt_crashes: " << cnt_crashes << std::endl;
+}
+
+void monitoringTask()
+{
+    pid_t id = syscall(SYS_gettid);
+    std::cout << "IP: monitoringTask() - in thread ID: " << id << std::endl;
 
     while(rclcpp::ok()) {
 
-        std::cout << "IP: Hello from thread " << id << std::endl;
-        std::cout << "IP: Initializing new publishers..." << std::endl;
-        initPublishers();
-        cnt_crashes++;
-        std::cout << "Error: Publishers crashed, recovering..." << std::endl;
-        std::cout << "FYI:  cnt_crashes: " << cnt_crashes << std::endl;
+        unsigned int last_received = 0;
+
+        std::cout << "IP: Outer loop of monitoring thread " << id << std::endl;
+        std::cout << "IP: starting worker thread..." << std::endl;
+
+        std::thread workerThread;
+
+        try {
+            workerThread = std::thread(workerTask);
+
+            sleep(3);
+
+            while (rclcpp::ok()) {
+
+                sleep(1);
+
+                unsigned int received = depthPublish_->getReceivedCount();
+
+                // \x1b[1;A  // (CSI 1 A) move cursor up a line.
+                // \r     // (CR) move cursor to beginning of line.
+                // \x1b[0;K  // (CSI 0 K) clear line from cursor to EOL.
+
+                std::cout << "\x1b[1;A\rIP: Inner loop of monitoring thread, received: " << received << std::endl;
+
+                if (received == last_received) {
+                    std::cout << "Error: frozen pipeline " << std::endl;
+                    break;
+                }
+
+                last_received = received;
+            }
+        } catch (...) {
+            std::cerr << "monitoringTask: Caught an exception while starting or running the worker thread" << std::endl;
+        }
+
+        if (workerThread.joinable()) {
+            workerThread.join();
+        }
     }
 }
 
@@ -237,9 +287,9 @@ int main(int argc, char** argv)
     node->get_parameter("monoResolution", monoResolution_);
     node->get_parameter("fpsDivider", fpsDivider_);
 
-    std::cout << "IP: starting worker thread..." << std::endl;
+    std::cout << "IP: starting monitoring thread..." << std::endl;
 
-    std::thread workerThread = std::thread(workerTask);
+    std::thread monitoringThread = std::thread(monitoringTask);
 
     std::cout << "IP: spinning node..." << std::endl;
 
@@ -247,7 +297,8 @@ int main(int argc, char** argv)
 
     std::cout << "OK: main() finished" << std::endl;
 
-    workerThread.join();
+    if (monitoringThread.joinable())
+        monitoringThread.join();
 
     return 0;
 }

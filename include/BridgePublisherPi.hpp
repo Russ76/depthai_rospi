@@ -79,6 +79,8 @@ class BridgePublisherPi {
 
     inline void setFpsDivider(int fpsDivider) { fpsDivider_ = fpsDivider; }
 
+    inline unsigned int getReceivedCount() { return cnt_received_; }
+
    private:
     /**
      * adding this callback will allow you to still be able to consume
@@ -90,10 +92,11 @@ class BridgePublisherPi {
     std::shared_ptr<dai::DataOutputQueue> _daiMessageQueue;
     ConvertFunc _converter;
     int fpsDivider_ = 10;
-    int cnt_mult_ = 0;
-    int cnt_ignored_ = 0;
-    int cnt_nulls_ = 0;
-    int cnt_trace_ = 0;
+    unsigned int cnt_mult_ = 0;
+    unsigned int cnt_received_ = 0;
+    unsigned int cnt_published_ = 0;
+    unsigned int cnt_nulls_ = 0;
+    unsigned int cnt_trace_ = 0;
 
     std::shared_ptr<rclcpp::Node> _node;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr _cameraInfoPublisher;
@@ -241,15 +244,17 @@ void BridgePublisherPi<RosMsg, SimMsg>::publishHelper(std::shared_ptr<SimMsg> in
         return;
     }
 
+    ++cnt_received_;
+
     if(++cnt_mult_ < fpsDivider_) {
-        cnt_ignored_++;
         return;
     }
+    cnt_published_++;
     cnt_mult_ = 0;
 
 #ifdef TRACE
     if(++cnt_trace_ >= 10) {
-        std::cout << "msgs ignored: " << cnt_ignored_ << "   nulls: " << cnt_nulls_ << std::endl;
+        std::cout << "msgs received: " << cnt_received_ << "  msgs published: " << cnt_published_ << "   nulls: " << cnt_nulls_ << std::endl;
         cnt_trace_ = 0;
     }
 #endif // TRACE
