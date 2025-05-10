@@ -10,6 +10,7 @@ https://github.com/luxonis/depthai/issues/624
 
 The code in this package tries to read the pipeline as-is, but publishes only _some_ of the data,
 thus making rates of _Image_ and _PointCloud2_ topics acceptable for WiFi connected robots.
+It also runs _Publishers_ in a separate thread, and restarts it if device pipelines freeze.
 
 **Note:** review this [guide](https://github.com/slgrobotics/robots_bringup/blob/main/Docs/Sensors/OAK-D_Lite.md) first.  
 
@@ -43,7 +44,7 @@ To see your data in RViz2 on the Desktop machine, follow this [guide](https://gi
 
 By default, the `fpsDivider` parameter is set to 10, which amounts to about 3 FPS on publishing all data (left and right Mono images and Depth).
 All data is published raw (uncompressed).
-The load on the WiFi link is around 120 Mbits/s for PointCloud2 data and about 8 Mbits/s for Image data (run nload wlan0 on RPi).
+The load on the WiFi link is around 120 Mbits/s for _PointCloud2_ data and about 8 Mbits/s for _Image_ data (run `nload wlan0` on RPi).
 
 ## Useful Links
 
