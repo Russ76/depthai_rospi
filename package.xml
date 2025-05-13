@@ -12,9 +12,10 @@
 
   <license>MIT</license>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
   
   <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
   <depend>cv_bridge</depend>
   <depend>camera_info_manager</depend>
   <depend>depthai</depend>
@@ -22,12 +23,14 @@
   <depend>depthai_bridge</depend>
   <depend>depthai_descriptions</depend>
   <depend>image_transport</depend>
+  <depend>message_filters</depend>
   <depend>libopencv-dev</depend>
   <depend>ros_environment</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>stereo_msgs</depend>
   <depend>vision_msgs</depend>
+  <depend>visualization_msgs</depend>
   <depend>foxglove_msgs</depend>
   <depend>rviz_imu_plugin</depend>
 

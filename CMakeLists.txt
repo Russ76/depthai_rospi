@@ -46,10 +46,15 @@ file(DOWNLOAD
   TLS_VERIFY ON)
 
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+#ament_auto_find_build_dependencies()
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 message(STATUS "------------------------------------------")
-message(STATUS "Depthai Bridge is being built using AMENT.")
+message(STATUS "Depthai_rospi is being built using AMENT.")
 message(STATUS "------------------------------------------")
+
+set(BUILD_TOOL_INCLUDE_DIRS ${ament_INCLUDE_DIRS})
 
 find_package(camera_info_manager REQUIRED)
 find_package(cv_bridge REQUIRED)
@@ -61,6 +66,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(vision_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 set(dependencies
   camera_info_manager
@@ -68,17 +74,15 @@ set(dependencies
   depthai_ros_msgs
   depthai_bridge
   rclcpp
+  rclcpp_components
   sensor_msgs
   stereo_msgs
   std_msgs
   vision_msgs
+  visualization_msgs
+  message_filters
+  OpenCV
 )
-
-include_directories(
-  include
-  ${ament_INCLUDE_DIRS}
-)
-
 
 macro(dai_add_node_ros2 node_name node_src)
   add_executable("${node_name}" "${node_src}")
@@ -96,15 +100,35 @@ endmacro()
 
 dai_add_node_ros2(stereo_node src/stereo_publisher.cpp)
 
+include_directories(
+  include
+  ${ament_INCLUDE_DIRS}
+)
+
+ament_auto_add_library(
+  ${PROJECT_NAME} SHARED
+  src/spatial_bb.cpp
+  src/utils.cpp
+)
+
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies})
 
 install(DIRECTORY params DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY resources DESTINATION share/${PROJECT_NAME})
-install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch
-FILES_MATCHING PATTERN "*.py")
+install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME})
 
 install(TARGETS
         stereo_node
         DESTINATION lib/${PROJECT_NAME})
+
+ament_export_include_directories(
+  include
+)
+install(
+    DIRECTORY include/
+    DESTINATION include
+)
 
 ament_package()
 
