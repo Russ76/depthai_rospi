@@ -106,13 +106,22 @@ include_directories(
 )
 
 ament_auto_add_library(
-  ${PROJECT_NAME} SHARED
+  spatial_bb_component SHARED
   src/spatial_bb.cpp
   src/utils.cpp
 )
 
-ament_target_dependencies(${PROJECT_NAME}
-  ${dependencies})
+rclcpp_components_register_nodes(spatial_bb_component "depthai_rospi_filters::SpatialBB")
+
+ament_target_dependencies(spatial_bb_component
+  ${dependencies}
+)
+
+install(TARGETS spatial_bb_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 install(DIRECTORY params DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY resources DESTINATION share/${PROJECT_NAME})

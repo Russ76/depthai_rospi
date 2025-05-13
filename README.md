@@ -46,6 +46,12 @@ By default, the `fpsDivider` parameter is set to 10, which amounts to about 3 FP
 All data is published raw (uncompressed).
 The load on the WiFi link is around 120 Mbits/s for _PointCloud2_ data and about 8 Mbits/s for _Image_ data (run `nload wlan0` on RPi).
 
+Here is how to launch the *spatial_bb*, similar to an example from *depthai_filters*:
+```
+ros2 launch depthai_rospi spatial_bb.launch.py
+```
+To see */overlay* and */oak/points* topics in RVis2, use settings in `~/depthai_ws/src/depthai_rospi/rviz/default.rviz`
+
 ## Useful Links
 
 https://github.com/slgrobotics/robots_bringup/blob/main/Docs/Sensors/OAK-D_Lite.md

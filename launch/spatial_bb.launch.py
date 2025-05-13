@@ -26,7 +26,8 @@ def launch_setup(context, *args, **kwargs):
             target_container=name+"_container",
             composable_node_descriptions=[
                     ComposableNode(
-                        package="depthai_filters",
+                        #package="depthai_filters",
+                        package="depthai_rospi",
                         #plugin="depthai_filters::SpatialBB",
                         plugin="depthai_rospi_filters::SpatialBB",
                         name="spatial_bb_node",
