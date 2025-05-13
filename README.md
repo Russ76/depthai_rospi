@@ -34,6 +34,8 @@ colcon build
 
 ## Usage
 
+#### Stereo Publisher:
+
 Here is how to launch the _stereo publisher node_ and its conversion helpers:
 ```
 cd ~/depthai_ws
@@ -46,11 +48,15 @@ By default, the `fpsDivider` parameter is set to 10, which amounts to about 3 FP
 All data is published raw (uncompressed).
 The load on the WiFi link is around 120 Mbits/s for _PointCloud2_ data and about 8 Mbits/s for _Image_ data (run `nload wlan0` on RPi).
 
-Here is how to launch the *spatial_bb*, similar to an example from *depthai_filters*:
+#### Spatial with 3D Detection:
+Here is how to launch the *spatial_bb*, similar to an [example](https://github.com/slgrobotics/robots_bringup/blob/main/Docs/Sensors/OAK-D_Lite.md#spatial-examples) from *depthai_filters*:
 ```
 ros2 launch depthai_rospi spatial_bb.launch.py
 ```
-To see */overlay* and */oak/points* topics in RVis2, use settings in `~/depthai_ws/src/depthai_rospi/rviz/default.rviz`
+To see */overlay* and */oak/points* topics in RVis2, use settings here:
+```
+~/depthai_ws/src/depthai_rospi/rviz/default.rviz
+```
 
 ## Useful Links
 
