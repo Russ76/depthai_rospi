@@ -1,15 +1,21 @@
 /oak:
   ros__parameters:
+    pipeline_gen:
+      i_enable_imu: false
     camera:
       i_nn_type: spatial
     rgb:
       i_enable_preview: true
       i_keep_preview_aspect_ratio: false
+      i_fps: 4.0
+      i_low_bandwidth: true
     nn:
       i_enable_passthrough: true
       i_disable_resize: true
     stereo:
       i_subpixel: true
+      i_fps: 3.0
+      i_low_bandwidth: true
 /spatial_bb_node:
   ros__parameters:
     desqueeze: true
