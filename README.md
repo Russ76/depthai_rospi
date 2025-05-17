@@ -8,13 +8,15 @@ Luxonis camera delivers data through _pipelines_, and when running at high frame
 There is a known issue - _OAK-D Lite_ doesn't support changing FPS via `i_fps` parameter or in code:
 https://github.com/luxonis/depthai/issues/624
 
-The code in this package tries to read the pipeline as-is, but publishes only _some_ of the data,
-thus making rates of _Image_ and _PointCloud2_ topics acceptable for WiFi connected robots.
+In my experiments with OAK-D Lite, supplying correct `.yaml` file as [ROS parameter](https://github.com/slgrobotics/robots_bringup/blob/main/Docs/Sensors/OAK-D_Lite.md#configuration-files) worked fine, lowering FPS as intended.
+
+If `i_fps` doesn't have effect, the code in this package tries to read the pipeline as-is, but publishes only _some_ of the data.
+This makes rates of _Image_ and _PointCloud2_ topics acceptable for WiFi connected robots.
 It also runs _Publishers_ in a separate thread, and restarts it if device pipelines freeze.
 
 **Note:** review this [guide](https://github.com/slgrobotics/robots_bringup/blob/main/Docs/Sensors/OAK-D_Lite.md) first.  
 
-We assume that your _OAK-D Lite_ camera is connected to Raspberry Pi, while you intend to view data on your Workstation (Desktop PC).
+We assume that your _OAK-D Lite_ camera is connected to Raspberry Pi, while you view data on your Workstation (Desktop PC).
 Both machines should run Ubuntu 24.04 - and Raspberry Pi can be "headless" (Server version of the OS).
 
 ## Build
